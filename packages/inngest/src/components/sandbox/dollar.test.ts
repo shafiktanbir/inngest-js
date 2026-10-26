@@ -1062,6 +1062,23 @@ describe("validation and helpers", () => {
     expect(ran).toEqual(["box", "pwd", "named", "pwd", "box:destroy"]);
   });
 
+  test("chaining options after setting an id preserves the id unless overridden", async () => {
+    const { client, execs } = createFakeClient();
+    const fn = groupFunction(client, async (sandbox) => {
+      await sandbox.$({ id: "preserved" })({ cwd: "/work" })`pwd`;
+      await sandbox.$({ id: "first" })({ id: "second", cwd: "/work" })`pwd`;
+    });
+
+    const { ran } = await runAll(fn);
+
+    expect(
+      execs.map((exec) => {
+        return exec.body.cwd;
+      }),
+    ).toEqual(["/work", "/work"]);
+    expect(ran).toEqual(["box", "preserved", "second", "box:destroy"]);
+  });
+
   test("text trims, lines split on CRLF, and json names the command when it fails", async () => {
     const { client } = createFakeClient((text) => {
       return { stdout: text === "bad" ? "not json" : "  a\r\nb\r\n\n " };
